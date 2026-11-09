@@ -26,6 +26,8 @@ public class DatabaseSettings {
     private String options;
     /** Full JDBC URL; overrides type/host/port/name when set. */
     private String url;
+    private String urlUsername;
+    private String urlPassword;
     private List<String> includeTables = new ArrayList<>();
     private List<String> excludeTables = new ArrayList<>();
     /** Send up to 5 example values of low-cardinality text columns to the LLM. */
@@ -120,14 +122,98 @@ public class DatabaseSettings {
     public void setName(String name) { this.name = name; }
     public String getSchema() { return notBlank(schema) ? schema.trim() : null; }
     public void setSchema(String schema) { this.schema = schema; }
-    public String getUsername() { return username; }
+    public String getUsername() { return notBlank(username) ? username : urlUsername; }
     public void setUsername(String username) { this.username = username; }
-    public String getPassword() { return password; }
+    public String getPassword() { return password != null && !password.isEmpty() ? password : urlPassword; }
     public void setPassword(String password) { this.password = password; }
     public String getOptions() { return options; }
     public void setOptions(String options) { this.options = options; }
     public String getUrl() { return url; }
-    public void setUrl(String url) { this.url = url; }
+    public void setUrl(String url) {
+        if (notBlank(url) && !url.trim().regionMatches(true, 0, "jdbc:", 0, 5) && url.contains("://")) {
+            applyPythonStyleUrl(url.trim()); // same NL2SQL_DB_URL as the Python version
+            this.url = null;
+        } else {
+            this.url = url;
+        }
+    }
+
+    /**
+     * Accept SQLAlchemy-style URLs (what the Python version uses), e.g. {@code mysql+pymysql://user:pw@host:3306/db},
+     * {@code postgresql+psycopg://...}, {@code mssql+pyodbc://...}, {@code oracle+oracledb://h:1521/?service_name=X},
+     * {@code sqlite:///path/to.db}. They are turned into type/host/port/name/options; credentials in the URL are used
+     * only when username/password are not set separately.
+     */
+    private void applyPythonStyleUrl(String raw) {
+        int sep = raw.indexOf("://");
+        String scheme = raw.substring(0, sep).toLowerCase(java.util.Locale.ROOT);
+        int plus = scheme.indexOf('+');
+        String base = plus >= 0 ? scheme.substring(0, plus) : scheme;
+        String rest = raw.substring(sep + 3);
+        String dbType = switch (base) {
+            case "mysql" -> "mysql";
+            case "mariadb" -> "mariadb";
+            case "postgresql", "postgres" -> "postgres";
+            case "mssql", "sqlserver" -> "sqlserver";
+            case "oracle" -> "oracle";
+            case "sqlite" -> "sqlite";
+            default -> throw new ConfigurationException("Unsupported database URL scheme '" + scheme
+                    + "'. Use a jdbc: URL or one of mysql://, mariadb://, postgresql://, mssql://, oracle://, sqlite:///");
+        };
+        this.type = dbType;
+        if ("sqlite".equals(dbType)) {
+            String path = rest.startsWith("/") ? rest.substring(1) : rest; // sqlite:///rel.db -> rel.db, sqlite:////abs -> /abs
+            if (path.matches("/[A-Za-z]:.*")) path = path.substring(1);   // sqlite:///C:/data/x.db
+            this.name = path;
+            return;
+        }
+        String query = "";
+        int q = rest.indexOf('?');
+        if (q >= 0) {
+            query = rest.substring(q + 1);
+            rest = rest.substring(0, q);
+        }
+        int at = rest.lastIndexOf('@');
+        if (at >= 0) {
+            String cred = rest.substring(0, at);
+            rest = rest.substring(at + 1);
+            int colon = cred.indexOf(':');
+            urlUsername = decode(colon >= 0 ? cred.substring(0, colon) : cred);
+            if (colon >= 0) urlPassword = decode(cred.substring(colon + 1));
+        }
+        int slash = rest.indexOf('/');
+        String hostPort = slash >= 0 ? rest.substring(0, slash) : rest;
+        String db = slash >= 0 ? rest.substring(slash + 1) : "";
+        int colon = hostPort.lastIndexOf(':');
+        if (colon > 0 && hostPort.substring(colon + 1).matches("\\d+")) {
+            this.port = Integer.parseInt(hostPort.substring(colon + 1));
+            hostPort = hostPort.substring(0, colon);
+        }
+        this.host = decode(hostPort);
+        Map<String, String> opts = new LinkedHashMap<>();
+        for (String part : query.split("&")) {
+            int eq = part.indexOf('=');
+            if (eq <= 0) continue;
+            String k = decode(part.substring(0, eq)), v = decode(part.substring(eq + 1));
+            switch (k.toLowerCase(java.util.Locale.ROOT)) {
+                case "service_name" -> db = v;
+                case "driver", "charset" -> { } // Python driver settings with no JDBC meaning
+                case "trustservercertificate" -> opts.put("trustServerCertificate", "yes".equalsIgnoreCase(v) ? "true" : v);
+                case "encrypt" -> opts.put("encrypt", "yes".equalsIgnoreCase(v) ? "true" : "no".equalsIgnoreCase(v) ? "false" : v);
+                default -> opts.put(k, v);
+            }
+        }
+        this.name = decode(db);
+        if (!opts.isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            opts.forEach((k, v) -> sb.append(sb.isEmpty() ? "" : "&").append(k).append('=').append(v));
+            this.options = sb.toString();
+        }
+    }
+
+    private static String decode(String s) {
+        return java.net.URLDecoder.decode(s.replace("+", "%2B"), java.nio.charset.StandardCharsets.UTF_8);
+    }
     public List<String> getIncludeTables() { return includeTables; }
     public void setIncludeTables(List<String> includeTables) { this.includeTables = clean(includeTables); }
     public List<String> getExcludeTables() { return excludeTables; }

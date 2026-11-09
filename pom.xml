@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -11,19 +12,39 @@
         <relativePath/>
     </parent>
 
-    <groupId>io.nl2sql</groupId>
+    <groupId>io.github.alok26sinha</groupId>
     <artifactId>nl2sql-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>nl2sql</name>
-    <description>Natural-language-to-SQL for relational databases, served as a REST API</description>
+    <description>Natural-language-to-SQL for relational databases: an embeddable Java library and a REST server</description>
+    <url>https://github.com/alok26sinha/nl2sql-java</url>
+    <inceptionYear>2026</inceptionYear>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
             <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
+    <developers>
+        <developer>
+            <id>alok26sinha</id>
+            <name>Alok Sinha</name>
+            <url>https://github.com/alok26sinha</url>
+        </developer>
+    </developers>
+    <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
+        <url>https://github.com/alok26sinha/nl2sql-java</url>
+        <connection>scm:git:https://github.com/alok26sinha/nl2sql-java.git</connection>
+        <developerConnection>scm:git:git@github.com:alok26sinha/nl2sql-java.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/alok26sinha/nl2sql-java/issues</url>
+    </issueManagement>
 
     <modules>
         <module>nl2sql-core</module>
@@ -37,12 +58,14 @@
         <jsqlparser.version>4.9</jsqlparser.version>
         <!-- The core library uses Jackson 2 (stable API); Spring MVC in the server uses Jackson 3. -->
         <jackson2.version>2.20.1</jackson2.version>
+        <!-- Maven Central: false = upload and validate, then press "Publish" in the Central Portal -->
+        <central.autoPublish>false</central.autoPublish>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>io.nl2sql</groupId>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>nl2sql-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -68,4 +91,73 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <profiles>
+        <!-- mvn -Prelease deploy : signed sources/javadoc/jars to Maven Central (needs the secrets in RELEASING.md) -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.1</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.11.2</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.7</version>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>${central.autoPublish}</autoPublish>
+                            <!-- the REST server is distributed as a runnable jar on GitHub Releases, not on Central -->
+                            <excludeArtifacts>
+                                <artifact>nl2sql-server</artifact>
+                            </excludeArtifacts>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

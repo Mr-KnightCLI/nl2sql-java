@@ -6,6 +6,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.MutablePropertySources;
+import org.springframework.core.env.StandardEnvironment;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -48,7 +50,16 @@ class ServerApiTest {
             ex.close();
         });
         llm.start();
-        app = SpringApplication.run(Nl2SqlServerApplication.class,
+        // Isolate from the developer's NL2SQL_* environment variables and -D options: Spring Boot would bind them.
+        SpringApplication spring = new SpringApplication(Nl2SqlServerApplication.class);
+        spring.setEnvironment(new StandardEnvironment() {
+            @Override
+            protected void customizePropertySources(MutablePropertySources sources) {
+                // no system properties, no environment variables
+            }
+        });
+        app = spring.run(
+                "--spring.config.import=optional:file:./nl2sql-test-none.properties", // ignore a developer nl2sql.properties
                 "--server.port=0",
                 "--nl2sql.db.type=sqlite",
                 "--nl2sql.db.name=" + db,

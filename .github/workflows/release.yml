@@ -1,5 +1,10 @@
 name: Release
 
+# Push a tag like v0.1.0:
+#   - nl2sql-core (+ parent POM) is signed and uploaded to Maven Central
+#   - the runnable REST server jar is attached to a GitHub Release
+# Secrets required (see RELEASING.md): CENTRAL_USERNAME, CENTRAL_PASSWORD, GPG_PRIVATE_KEY, GPG_PASSPHRASE
+
 on:
   push:
     tags: ['v*']
@@ -13,12 +18,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: {distribution: temurin, java-version: '21', cache: maven}
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: Set version from tag
         run: mvn -B -ntp versions:set -DnewVersion="${GITHUB_REF_NAME#v}" -DgenerateBackupPoms=false
-      - name: Build (unit tests only)
-        run: mvn -B -ntp package
-      - name: Publish release
+      - name: Build, sign and upload to Maven Central
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        # autoPublish=false: the upload is validated, then you press "Publish" at central.sonatype.com/publishing.
+        # Set the repository variable CENTRAL_AUTO_PUBLISH=true once you trust the pipeline.
+        run: mvn -B -ntp -Prelease deploy -Dcentral.autoPublish=${{ vars.CENTRAL_AUTO_PUBLISH || 'false' }}
+      - name: Publish GitHub release with the server jar
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

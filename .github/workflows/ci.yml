@@ -37,6 +37,7 @@ jobs:
         options: --health-cmd healthcheck.sh --health-interval 10s --health-timeout 5s --health-retries 30
 
     env:
+      NL2SQL_TEST_LIVE: 'true'
       NL2SQL_TEST_MYSQL_URL: jdbc:mysql://localhost:3306/tms
       NL2SQL_TEST_MYSQL_USER: root
       NL2SQL_TEST_MYSQL_PASSWORD: rootpw
@@ -59,6 +60,8 @@ jobs:
         with: {distribution: temurin, java-version: '21', cache: maven}
       - name: Build and test (unit + all six databases)
         run: mvn -B -ntp verify
+      - name: Check Maven Central packaging (sources + javadoc, unsigned)
+        run: mvn -B -ntp -Prelease -Dgpg.skip -DskipTests package
       - name: Smoke-test the runnable jar
         run: |
           java -jar nl2sql-server/target/nl2sql-*.jar --nl2sql.db.type=sqlite --nl2sql.db.name=/tmp/smoke.db --server.port=18080 &

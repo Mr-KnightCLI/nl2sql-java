@@ -53,6 +53,25 @@ class SettingsTest {
         assertThat(d.dialect()).isEqualTo(Dialect.POSTGRES);
     }
 
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', nullValues = "null", value = {
+            "mysql+pymysql://localhost:3306/capstone                 | jdbc:mysql://localhost:3306/capstone            | null | null",
+            "mysql+pymysql://app:p%40ss@db:3307/shop?charset=utf8mb4 | jdbc:mysql://db:3307/shop                       | app  | p@ss",
+            "postgresql+psycopg://u:pw@h/erp?sslmode=require          | jdbc:postgresql://h:5432/erp?sslmode=require    | u    | pw",
+            "mssql+pyodbc://sa:x@h:1433/sales?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes | jdbc:sqlserver://h:1433;databaseName=sales;trustServerCertificate=true | sa | x",
+            "oracle+oracledb://scott:t@h:1521/?service_name=FREEPDB1  | jdbc:oracle:thin:@//h:1521/FREEPDB1             | scott | t",
+            "sqlite:///data/tms.db                                    | jdbc:sqlite:data/tms.db                         | null | null",
+            "sqlite:///C:/data/tms.db                                 | jdbc:sqlite:C:/data/tms.db                      | null | null"})
+    void acceptsPythonStyleUrls(String raw, String jdbc, String user, String password) {
+        DatabaseSettings d = new DatabaseSettings();
+        d.setUrl(raw);
+        assertThat(d.jdbcUrl()).isEqualTo(jdbc);
+        assertThat(d.getUsername()).isEqualTo(user);
+        assertThat(d.getPassword()).isEqualTo(password);
+        d.setUsername("explicit");
+        assertThat(d.getUsername()).isEqualTo("explicit");
+    }
+
     @Test
     void helpfulErrors() {
         assertThatThrownBy(() -> new DatabaseSettings().jdbcUrl()).hasMessageContaining("NL2SQL_DB_TYPE");

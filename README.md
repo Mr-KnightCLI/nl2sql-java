@@ -6,7 +6,8 @@ the SQL, checks it against strict guardrails, runs it read-only and returns the 
 - **Databases:** MySQL, MariaDB, PostgreSQL, Microsoft SQL Server, Oracle, SQLite (all drivers bundled)
 - **LLMs:** any OpenAI-compatible API (OpenAI, Azure OpenAI, Groq, Together, Ollama, vLLM, LiteLLM, ...) or Anthropic
 - **Configuration:** a properties file and/or environment variables. No code needed.
-- **Interface:** REST only. One runnable jar, Java 21.
+- **Two ways to use it:** a standalone REST server (one runnable jar, Java 21), or the `nl2sql-core` library
+  embedded in your own Java application, from Maven Central.
 
 [![CI](https://github.com/alok26sinha/nl2sql-java/actions/workflows/ci.yml/badge.svg)](https://github.com/alok26sinha/nl2sql-java/actions/workflows/ci.yml)
 
@@ -50,6 +51,17 @@ the SQL, checks it against strict guardrails, runs it read-only and returns the 
      "elapsed_ms": 18.4
    }
    ```
+
+### On Windows from a source checkout
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-local.ps1      # uses nl2sql.properties (and nl2sql.env if present)
+powershell -ExecutionPolicy Bypass -File .\run-local.ps1 -Ask "How many shipments are in transit?"   # second window
+```
+
+The script reads `nl2sql.properties` and, if present, `nl2sql.env` (or the file given with `-EnvFile`) from the project folder, downloads portable copies of Java 21 and Maven into `.tools\`
+if they are missing, builds the jar on first use and starts the server.
+`NL2SQL_DB_URL` can be a `jdbc:` URL or the Python version's style (`mysql+pymysql://user:pw@host:3306/db`).
 
 ## Configuration
 
@@ -155,6 +167,57 @@ explains why (HTTP 200). Failures reaching the LLM return 502, and an unreadable
 - The schema (table and column names, and a few sample values of code-like columns) is sent to the LLM. Rows
   returned by queries are not.
 
+## Embedding the library in your application
+
+No separate server is needed: add the core library and the JDBC driver for your database.
+
+```xml
+<dependency>
+  <groupId>io.github.alok26sinha</groupId>
+  <artifactId>nl2sql-core</artifactId>
+  <version>0.1.0</version>
+</dependency>
+<dependency>
+  <groupId>com.mysql</groupId>
+  <artifactId>mysql-connector-j</artifactId>
+  <version>9.4.0</version>
+</dependency>
+```
+
+```java
+Nl2SqlSettings s = new Nl2SqlSettings();
+s.getDb().setType("mysql");
+s.getDb().setHost("localhost");
+s.getDb().setName("capstone");
+s.getDb().setUsername("nl2sql_ro");
+s.getDb().setPassword(System.getenv("DB_PASSWORD"));
+s.getLlm().setBaseUrl("https://api.openai.com/v1");
+s.getLlm().setModel("gpt-4.1-mini");
+s.getLlm().setApiKey(System.getenv("LLM_API_KEY"));
+
+try (Nl2SqlEngine engine = Nl2SqlEngine.create(s)) {        // create once and share; thread-safe
+    QueryResult r = engine.ask("How many shipments are in transit?", List.of());
+    if (r.ok()) {
+        System.out.println(r.sql());
+        r.rows().forEach(System.out::println);
+    } else {
+        System.out.println(r.clarification() != null ? r.clarification() : r.error());
+    }
+}
+```
+
+To reuse your application's connection pool (it should use a read-only account), build the engine yourself;
+nl2sql then does not close the pool:
+
+```java
+LlmProvider llm = LlmProviders.create(s.getLlm(), Nl2SqlEngine.defaultJson());
+Nl2SqlEngine engine = new Nl2SqlEngine(s, appDataSource, llm, false);
+```
+
+Other calls: `generate(question, history)` returns validated SQL without running it, `addExample(question, sql)`
+stores a verified example, `catalog()` returns the schema, and `history` (a list of earlier `Turn(question, sql)`)
+enables follow-up questions. The library uses Jackson 2, HikariCP, JSqlParser and SLF4J, and no Spring.
+
 ## Running as a service
 
 ```bash
@@ -175,7 +238,8 @@ Modules:
 - `nl2sql-server`: Spring Boot 4 REST API and runnable jar
 
 CI runs the full suite against MySQL 8.4, MariaDB 11, PostgreSQL 16, SQL Server 2022 and Oracle 23 Free.
-Pushing a tag `vX.Y.Z` publishes `nl2sql-X.Y.Z.jar` to GitHub Releases.
+Pushing a tag `vX.Y.Z` publishes `nl2sql-core` to Maven Central and `nl2sql-X.Y.Z.jar` to GitHub Releases;
+see [RELEASING.md](RELEASING.md).
 
 ## License
 

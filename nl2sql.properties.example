@@ -1,57 +1,86 @@
 # nl2sql configuration. Copy to nl2sql.properties (next to the jar) or point NL2SQL_CONFIG at it.
-# Every setting can instead come from an environment variable (shown on the right); environment wins.
+# Every setting can instead come from the environment variable named above it; environment wins.
+# Keep values alone on their line: properties files do not support comments after a value.
 
 # ---- Database ------------------------------------------------------------------------------------
-# mysql | mariadb | postgres | sqlserver | oracle | sqlite                          NL2SQL_DB_TYPE
+# mysql | mariadb | postgres | sqlserver | oracle | sqlite
+# env: NL2SQL_DB_TYPE
 nl2sql.db.type=mysql
+# env: NL2SQL_DB_HOST
 nl2sql.db.host=localhost
-#                                                                                   NL2SQL_DB_HOST
-# nl2sql.db.port=3306                                       (default per type)      NL2SQL_DB_PORT
-# database name; Oracle: service name (e.g. FREEPDB1); SQLite: file path            NL2SQL_DB_NAME
+# env: NL2SQL_DB_PORT  (default per type)
+# nl2sql.db.port=3306
+# database name; Oracle: service name (e.g. FREEPDB1); SQLite: file path
+# env: NL2SQL_DB_NAME
 nl2sql.db.name=tms
-# PostgreSQL / SQL Server / Oracle schema to expose (default: user's default)       NL2SQL_DB_SCHEMA
+# PostgreSQL / SQL Server / Oracle schema to expose (default: user's default)
+# env: NL2SQL_DB_SCHEMA
 # nl2sql.db.schema=public
-# Use a READ-ONLY database user.                                                    NL2SQL_DB_USERNAME
+# Use a READ-ONLY database user.
+# env: NL2SQL_DB_USERNAME
 nl2sql.db.username=nl2sql_reader
-# Prefer the environment variable for secrets.                                      NL2SQL_DB_PASSWORD
+# Prefer the environment variable for secrets.
+# env: NL2SQL_DB_PASSWORD
 # nl2sql.db.password=
-# extra JDBC options, e.g. sslMode=REQUIRED  or  encrypt=true;trustServerCertificate=true    NL2SQL_DB_OPTIONS
+# extra JDBC options, e.g. sslMode=REQUIRED  or  encrypt=true;trustServerCertificate=true
+# env: NL2SQL_DB_OPTIONS
 # nl2sql.db.options=
-# or a complete JDBC URL, which overrides type/host/port/name/options               NL2SQL_DB_URL
+# or a complete JDBC URL, which overrides type/host/port/name/options
+# env: NL2SQL_DB_URL
 # nl2sql.db.url=jdbc:postgresql://db.example.com:5432/erp
-# nl2sql.db.include-tables=shipments,carriers                                       NL2SQL_INCLUDE_TABLES
-# nl2sql.db.exclude-tables=audit_log                                                NL2SQL_EXCLUDE_TABLES
-# nl2sql.db.sample-values=true                                                      NL2SQL_SAMPLE_VALUES
-# nl2sql.db.pool-size=5                                                             NL2SQL_DB_POOL_SIZE
+# env: NL2SQL_INCLUDE_TABLES
+# nl2sql.db.include-tables=shipments,carriers
+# env: NL2SQL_EXCLUDE_TABLES
+# nl2sql.db.exclude-tables=audit_log
+# env: NL2SQL_SAMPLE_VALUES
+# nl2sql.db.sample-values=true
+# env: NL2SQL_DB_POOL_SIZE
+# nl2sql.db.pool-size=5
 
 # ---- LLM -----------------------------------------------------------------------------------------
 # openai (any OpenAI-compatible API: OpenAI, Azure OpenAI, Groq, Ollama, vLLM, LiteLLM...) | anthropic
+# env: NL2SQL_LLM_PROVIDER
 nl2sql.llm.provider=openai
-#                                                                                   NL2SQL_LLM_PROVIDER
+# env: NL2SQL_LLM_BASE_URL
 nl2sql.llm.base-url=https://api.openai.com/v1
-#                                                                                   NL2SQL_LLM_BASE_URL
+# env: NL2SQL_LLM_MODEL
 nl2sql.llm.model=gpt-4.1-mini
-#                                                                                   NL2SQL_LLM_MODEL
-# nl2sql.llm.api-key=                       (prefer the environment variable)       NL2SQL_LLM_API_KEY
-# nl2sql.llm.temperature=0                                                          NL2SQL_LLM_TEMPERATURE
-# nl2sql.llm.max-tokens=1500                                                        NL2SQL_LLM_MAX_TOKENS
-# nl2sql.llm.timeout-seconds=60                                                     NL2SQL_LLM_TIMEOUT
-# nl2sql.llm.headers=X-Gateway-Key: abc; X-Team: data                               NL2SQL_LLM_HEADERS
+# env: NL2SQL_LLM_API_KEY  (prefer the environment variable)
+# nl2sql.llm.api-key=
+# env: NL2SQL_LLM_TEMPERATURE
+# nl2sql.llm.temperature=0
+# env: NL2SQL_LLM_MAX_TOKENS
+# nl2sql.llm.max-tokens=1500
+# env: NL2SQL_LLM_TIMEOUT
+# nl2sql.llm.timeout-seconds=60
+# env: NL2SQL_LLM_HEADERS
+# nl2sql.llm.headers=X-Gateway-Key: abc; X-Team: data
 
 # ---- Guardrails ----------------------------------------------------------------------------------
-# nl2sql.guardrails.max-rows=1000                                                   NL2SQL_MAX_ROWS
-# nl2sql.guardrails.statement-timeout-seconds=30                                    NL2SQL_STATEMENT_TIMEOUT
-# nl2sql.guardrails.blocked-columns=customers.email,employees.salary                NL2SQL_BLOCKED_COLUMNS
-# nl2sql.guardrails.allow-select-star=true                                          NL2SQL_ALLOW_SELECT_STAR
-# nl2sql.guardrails.max-correction-attempts=2                                       NL2SQL_MAX_CORRECTION_ATTEMPTS
+# env: NL2SQL_MAX_ROWS
+# nl2sql.guardrails.max-rows=1000
+# env: NL2SQL_STATEMENT_TIMEOUT
+# nl2sql.guardrails.statement-timeout-seconds=30
+# env: NL2SQL_BLOCKED_COLUMNS
+# nl2sql.guardrails.blocked-columns=customers.email,employees.salary
+# env: NL2SQL_ALLOW_SELECT_STAR
+# nl2sql.guardrails.allow-select-star=true
+# env: NL2SQL_MAX_CORRECTION_ATTEMPTS
+# nl2sql.guardrails.max-correction-attempts=2
 
 # ---- Business context (optional) -----------------------------------------------------------------
-# nl2sql.semantics-path=semantics.json                                              NL2SQL_SEMANTICS_PATH
-# nl2sql.examples-path=examples.json                                                NL2SQL_EXAMPLES_PATH
-# nl2sql.extra-instructions=Fiscal year starts on 1 April.                          NL2SQL_EXTRA_INSTRUCTIONS
+# env: NL2SQL_SEMANTICS_PATH
+# nl2sql.semantics-path=semantics.json
+# env: NL2SQL_EXAMPLES_PATH
+# nl2sql.examples-path=examples.json
+# env: NL2SQL_EXTRA_INSTRUCTIONS
+# nl2sql.extra-instructions=Fiscal year starts on 1 April.
 
 # ---- REST server ---------------------------------------------------------------------------------
 # Required X-API-Key header on /v1/*. Set it whenever the server is reachable from other machines.
-# nl2sql.server.api-key=                                                            NL2SQL_SERVER_API_KEY
-# server.address=127.0.0.1         (0.0.0.0 to listen on all interfaces)            NL2SQL_SERVER_HOST
-# server.port=8080                                                                  NL2SQL_SERVER_PORT
+# env: NL2SQL_SERVER_API_KEY
+# nl2sql.server.api-key=
+# env: NL2SQL_SERVER_HOST  (0.0.0.0 to listen on all interfaces)
+# server.address=127.0.0.1
+# env: NL2SQL_SERVER_PORT
+# server.port=8080

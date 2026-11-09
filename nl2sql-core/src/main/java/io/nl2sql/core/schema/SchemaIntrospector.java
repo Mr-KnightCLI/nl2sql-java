@@ -103,7 +103,7 @@ public class SchemaIntrospector {
             if (sampleValues) collectSamples(conn, cat, schemaPattern);
             return cat;
         } catch (SQLException e) {
-            throw new SchemaException("Schema introspection failed: " + firstLine(e.getMessage())
+            throw new SchemaException("Schema introspection failed: " + firstLine(e.getMessage()) + rootCause(e)
                     + (schema != null ? " (check that the schema '" + schema + "' exists and the user can read it)" : ""), e);
         }
     }
@@ -269,5 +269,13 @@ public class SchemaIntrospector {
         if (s == null) return "";
         int nl = s.indexOf('\n');
         return nl < 0 ? s : s.substring(0, nl);
+    }
+
+    /** Pool timeouts hide the real reason (wrong password, host down...): show the innermost cause too. */
+    static String rootCause(Throwable e) {
+        Throwable root = e;
+        while (root.getCause() != null && root.getCause() != root) root = root.getCause();
+        if (root == e || root.getMessage() == null) return "";
+        return ". Cause: " + firstLine(root.getMessage());
     }
 }

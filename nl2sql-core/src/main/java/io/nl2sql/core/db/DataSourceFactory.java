@@ -39,6 +39,7 @@ public final class DataSourceFactory {
             case ORACLE -> cfg.addDataSourceProperty("oracle.net.CONNECT_TIMEOUT", "15000");
             case SQLITE -> {
                 cfg.addDataSourceProperty("open_mode", "1"); // SQLITE_OPEN_READONLY
+                cfg.setReadOnly(true); // Hikari re-applies this flag; sqlite-jdbc refuses to change it once open
                 cfg.setMaximumPoolSize(1);
             }
         }

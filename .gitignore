@@ -8,3 +8,4 @@ nl2sql.properties
 *.env
 examples.json
 *.db
+.tools/

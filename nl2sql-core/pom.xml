@@ -5,13 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nl2sql</groupId>
+        <groupId>io.github.alok26sinha</groupId>
         <artifactId>nl2sql-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nl2sql-core</artifactId>
     <name>nl2sql-core</name>
+    <url>https://github.com/alok26sinha/nl2sql-java</url>
     <description>Framework-free core: schema introspection, prompting, SQL guardrails, safe execution, LLM providers</description>
 
     <dependencies>

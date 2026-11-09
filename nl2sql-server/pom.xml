@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>io.nl2sql</groupId>
+        <groupId>io.github.alok26sinha</groupId>
         <artifactId>nl2sql-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -16,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.nl2sql</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>nl2sql-core</artifactId>
         </dependency>
         <dependency>

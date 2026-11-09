@@ -12,19 +12,25 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Runs against real databases when NL2SQL_TEST_&lt;DB&gt;_URL (plus _USER and _PASSWORD) are set — in CI these point at
- * service containers. Each case is skipped when its URL is missing.
+ * Runs against real databases when NL2SQL_TEST_LIVE=true and NL2SQL_TEST_&lt;DB&gt;_URL (plus _USER and _PASSWORD) are
+ * set; in CI these point at throwaway service containers. The test DROPS and recreates the tables carriers, customers,
+ * locations, shipments and invoices, so never point it at a database you care about.
  */
 class LiveDatabaseTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"MYSQL", "MARIADB", "PG", "MSSQL", "ORACLE"})
     void endToEnd(String key) throws Exception {
-        String url = System.getenv("NL2SQL_TEST_" + key + "_URL");
-        Assumptions.assumeTrue(url != null && !url.isBlank(), "NL2SQL_TEST_" + key + "_URL not set");
-        String user = System.getenv("NL2SQL_TEST_" + key + "_USER");
-        String password = System.getenv("NL2SQL_TEST_" + key + "_PASSWORD");
-        Dialect d = Dialect.fromJdbcUrl(url);
+        Assumptions.assumeTrue("true".equalsIgnoreCase(System.getenv("NL2SQL_TEST_LIVE")),
+                "NL2SQL_TEST_LIVE=true not set (this test rewrites fixture tables)");
+        String raw = System.getenv("NL2SQL_TEST_" + key + "_URL");
+        Assumptions.assumeTrue(raw != null && !raw.isBlank(), "NL2SQL_TEST_" + key + "_URL not set");
+        io.nl2sql.core.config.DatabaseSettings parsed = new io.nl2sql.core.config.DatabaseSettings();
+        parsed.setUrl(raw); // jdbc: or Python-style URL
+        String url = parsed.jdbcUrl();
+        String user = System.getenv().getOrDefault("NL2SQL_TEST_" + key + "_USER", parsed.getUsername());
+        String password = System.getenv().getOrDefault("NL2SQL_TEST_" + key + "_PASSWORD", parsed.getPassword());
+        Dialect d = parsed.dialect();
         try (Connection c = TestDatabase.connect(url, user, password)) {
             TestDatabase.load(c, d);
         }

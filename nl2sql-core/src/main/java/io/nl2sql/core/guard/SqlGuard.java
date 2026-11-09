@@ -86,13 +86,21 @@ public class SqlGuard {
 
         // ---- tables
         Map<String, Table> aliasMap = new LinkedHashMap<>();
+        Set<String> derivedAliases = new HashSet<>();
         List<String> used = new ArrayList<>();
         List<net.sf.jsqlparser.schema.Table> toQualify = new ArrayList<>();
         Set<String> realLower = new HashSet<>();
         for (String r : realNames) realLower.add(r.toLowerCase(Locale.ROOT));
         for (net.sf.jsqlparser.schema.Table t : collector.tables) {
             String name = SqlLexer.unquote(t.getName());
-            if (name == null || cteNames.contains(name.toLowerCase(Locale.ROOT))) continue;
+            if (name == null) continue;
+            if (cteNames.contains(name.toLowerCase(Locale.ROOT))) {
+                // "FROM big b" where big is a CTE: b names a derived table, its columns are checked inside the CTE
+                if (t.getAlias() != null && t.getAlias().getName() != null) {
+                    derivedAliases.add(SqlLexer.unquote(t.getAlias().getName()).toLowerCase(Locale.ROOT));
+                }
+                continue;
+            }
             if (!realLower.contains(t.getFullyQualifiedName().toLowerCase(Locale.ROOT))) continue;
             if (t.getDatabase() != null && t.getDatabase().getDatabaseName() != null
                     && !t.getDatabase().getDatabaseName().isBlank()) {
@@ -128,7 +136,7 @@ public class SqlGuard {
                 String lq = qualifier.toLowerCase(Locale.ROOT);
                 Table real = aliasMap.get(lq);
                 if (real == null) {
-                    if (cteNames.contains(lq) || defined.contains(lq)) continue; // CTE / derived table column
+                    if (cteNames.contains(lq) || derivedAliases.contains(lq) || defined.contains(lq)) continue; // CTE / derived table column
                     throw new GuardrailViolation("Unknown table alias '" + qualifier + "' in " + col, sql);
                 }
                 if (blocked.contains((real.name() + "." + cname).toLowerCase(Locale.ROOT))) {
