@@ -64,9 +64,13 @@ jobs:
         run: mvn -B -ntp -Prelease -Dgpg.skip -DskipTests package
       - name: Smoke-test the runnable jar
         run: |
-          java -jar nl2sql-server/target/nl2sql-*.jar --nl2sql.db.type=sqlite --nl2sql.db.name=/tmp/smoke.db --server.port=18080 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:18080/health && break; sleep 1; done
-          curl -fsS http://127.0.0.1:18080/openapi.yaml | head -3
+          set -euo pipefail
+          JAR=$(ls nl2sql-server/target/nl2sql-*.jar | grep -vE -- '-(sources|javadoc)\.jar$')
+          java -jar "$JAR" --nl2sql.db.type=sqlite --nl2sql.db.name=/tmp/smoke.db --server.port=18080 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:18080/health && break; sleep 1; done
+          curl -fsS http://127.0.0.1:18080/health
+          curl -fsS http://127.0.0.1:18080/openapi.yaml | grep -q '^openapi:'
+          echo "smoke test passed"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

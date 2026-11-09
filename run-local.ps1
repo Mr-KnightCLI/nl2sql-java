@@ -104,7 +104,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 Write-Host "Java: $java (version $(JavaMajor $java))"
 
 $Jar = Get-ChildItem "$Root\nl2sql-server\target" -Filter "nl2sql-*.jar" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -notlike "*.original" } | Select-Object -First 1
+    Where-Object { $_.Name -notmatch "(\.original|-sources\.jar|-javadoc\.jar)$" } | Select-Object -First 1
 if ($Rebuild -or $Test -or -not $Jar) {
     $mvn = (Get-Command mvn -ErrorAction SilentlyContinue).Source
     if (-not $mvn) {
@@ -123,7 +123,7 @@ if ($Rebuild -or $Test -or -not $Jar) {
     if (-not $Test) { $mvnArgs += "-DskipTests" }
     & $mvn @mvnArgs
     if ($LASTEXITCODE -ne 0) { throw "Maven build failed (exit code $LASTEXITCODE). Scroll up for the first [ERROR] line." }
-    $Jar = Get-ChildItem "$Root\nl2sql-server\target" -Filter "nl2sql-*.jar" | Where-Object { $_.Name -notlike "*.original" } | Select-Object -First 1
+    $Jar = Get-ChildItem "$Root\nl2sql-server\target" -Filter "nl2sql-*.jar" | Where-Object { $_.Name -notmatch "(\.original|-sources\.jar|-javadoc\.jar)$" } | Select-Object -First 1
 }
 
 # ---------------------------------------------------------------- run
