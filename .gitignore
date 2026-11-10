@@ -9,3 +9,4 @@ nl2sql.properties
 examples.json
 *.db
 .tools/
+public-key.asc

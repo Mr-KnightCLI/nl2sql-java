@@ -11,6 +11,10 @@ Maven Central releases are permanent: a version can never be changed or deleted,
 
 ## One-time setup
 
+Shortcut: after signing in to the Central Portal and generating a user token (step 1), run
+`powershell -ExecutionPolicy Bypass -File .\setup-release-secrets.ps1`. It does steps 2 and 3 and re-runs a failed release.
+It needs Git for Windows and the GitHub CLI (`winget install GitHub.cli`, then `gh auth login`).
+
 ### 1. Central Portal account and namespace
 
 1. Go to <https://central.sonatype.com>, choose **Sign in** → **Continue with GitHub**, and sign in as `alok26sinha`.
