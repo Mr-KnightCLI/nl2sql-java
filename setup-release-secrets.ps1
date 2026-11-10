@@ -15,7 +15,9 @@ Before running: sign in at https://central.sonatype.com with GitHub and generate
 #>
 param([string]$Repo = "alok26sinha/nl2sql-java")
 
-$ErrorActionPreference = "Stop"
+# "Continue", not "Stop": Windows PowerShell 5 turns any stderr text from native tools (gpg prints status messages
+# there) into a terminating error. Failures are detected through exit codes and explicit checks instead.
+$ErrorActionPreference = "Continue"
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
 function Plain([Security.SecureString]$s) { [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s)) }
 
@@ -35,7 +37,7 @@ Write-Host "gpg: $gpg"
 Write-Host "gh:  $gh"
 
 $tmp = Join-Path $env:TEMP ("nl2sql-release-" + [guid]::NewGuid())
-New-Item -ItemType Directory $tmp | Out-Null
+New-Item -ItemType Directory $tmp -ErrorAction Stop | Out-Null
 try {
     # ------------------------------------------------------------ 1. key
     Step "GPG signing key"
@@ -58,7 +60,9 @@ try {
         & $gpg --batch --pinentry-mode loopback --passphrase-file $passFile --quick-generate-key "$name <$email>" rsa4096 sign 3y
         if ($LASTEXITCODE -ne 0) { throw "Key generation failed." }
     }
-    $fpr = (& $gpg --batch --with-colons --list-secret-keys $email | Where-Object { $_ -like "fpr:*" } | Select-Object -First 1).Split(":")[9]
+    $fprLine = & $gpg --batch --with-colons --list-secret-keys $email 2>$null | Where-Object { $_ -like "fpr:*" } | Select-Object -First 1
+    if (-not $fprLine) { throw "No secret key found for $email after key generation." }
+    $fpr = $fprLine.Split(":")[9]
     Write-Host "Key fingerprint: $fpr"
 
     # check the passphrase really unlocks the key (signs a test message)
@@ -84,7 +88,7 @@ try {
     Step "Storing GitHub Actions secrets in $Repo"
     $keyFile = Join-Path $tmp "k.asc"
     & $gpg --batch --pinentry-mode loopback --passphrase-file $passFile --armor --export-secret-keys $fpr | Out-File -Encoding ascii $keyFile
-    $armored = Get-Content $keyFile -Raw
+    $armored = Get-Content $keyFile -Raw -ErrorAction Stop
     if ($armored -notmatch "BEGIN PGP PRIVATE KEY BLOCK") { throw "Exporting the private key failed." }
     & $gh secret set GPG_PRIVATE_KEY --repo $Repo --body $armored;  if ($LASTEXITCODE -ne 0) { throw "gh secret set GPG_PRIVATE_KEY failed" }
     & $gh secret set GPG_PASSPHRASE --repo $Repo --body $p1;        if ($LASTEXITCODE -ne 0) { throw "gh secret set GPG_PASSPHRASE failed" }
