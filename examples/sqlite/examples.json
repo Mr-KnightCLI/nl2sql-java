@@ -1,0 +1,32 @@
+[
+  {
+    "question": "How much has each customer spent on paid orders, in cents?",
+    "sql": "SELECT c.customer_name, SUM(o.total_cents) AS paid_total_cents FROM shop_customers c JOIN shop_orders o ON o.customer_id = c.customer_id WHERE o.status = 'PAID' GROUP BY c.customer_id, c.customer_name ORDER BY paid_total_cents DESC, c.customer_name",
+    "notes": "E-commerce: exclude cancelled orders and customers with no paid orders. Money uses integer cents."
+  },
+  {
+    "question": "Which customers have never placed an order?",
+    "sql": "SELECT c.customer_name FROM shop_customers c LEFT JOIN shop_orders o ON o.customer_id = c.customer_id WHERE o.order_id IS NULL ORDER BY c.customer_name",
+    "notes": "E-commerce: a cancelled order still counts as an order."
+  },
+  {
+    "question": "How many delivered shipments were late for each carrier, including carriers with none?",
+    "sql": "SELECT c.carrier_name, COUNT(s.shipment_id) AS late_count FROM logistics_carriers c LEFT JOIN logistics_shipments s ON s.carrier_id = c.carrier_id AND s.delivered_at > s.promised_at GROUP BY c.carrier_id, c.carrier_name ORDER BY c.carrier_name",
+    "notes": "Logistics: late means delivered strictly after the promise. Undelivered and exactly on-time shipments are excluded. Keep the predicate in the join to preserve zero counts."
+  },
+  {
+    "question": "Which shipments have not been delivered?",
+    "sql": "SELECT shipment_id FROM logistics_shipments WHERE delivered_at IS NULL ORDER BY shipment_id",
+    "notes": "Logistics: NULL delivered_at means undelivered, without assuming that the shipment is overdue."
+  },
+  {
+    "question": "How many active employees are in each department, including empty departments?",
+    "sql": "SELECT d.department_name, COUNT(e.employee_id) AS active_count FROM hr_departments d LEFT JOIN hr_employees e ON e.department_id = d.department_id AND e.active = 1 GROUP BY d.department_id, d.department_name ORDER BY d.department_name",
+    "notes": "HR: active = 1. Count employee IDs rather than joined rows to return zero for empty departments."
+  },
+  {
+    "question": "What is the total salary in cents of active employees in each department with active employees?",
+    "sql": "SELECT d.department_name, SUM(e.salary_cents) AS salary_total_cents FROM hr_departments d JOIN hr_employees e ON e.department_id = d.department_id WHERE e.active = 1 GROUP BY d.department_id, d.department_name ORDER BY d.department_name",
+    "notes": "HR: exclude inactive employees. Salaries are fictional and stored as integer cents."
+  }
+]
