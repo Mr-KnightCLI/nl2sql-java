@@ -63,6 +63,12 @@ The script reads `nl2sql.properties` and, if present, `nl2sql.env` (or the file 
 if they are missing, builds the jar on first use and starts the server.
 `NL2SQL_DB_URL` can be a `jdbc:` URL or the Python version's style (`mysql+pymysql://user:pw@host:3306/db`).
 
+## Sample questions and schemas
+
+Try the [SQLite examples](examples/sqlite/README.md) for e-commerce, logistics and HR:
+six verified question/SQL pairs, a small fictional dataset, expected results and setup instructions.
+The same files are exercised by the Java test suite without an LLM API key.
+
 ## Configuration
 
 Precedence, highest first:
