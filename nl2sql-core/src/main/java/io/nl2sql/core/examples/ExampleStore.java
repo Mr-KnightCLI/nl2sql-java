@@ -39,8 +39,14 @@ public class ExampleStore {
     }
 
     public synchronized void add(String question, String sql, String notes) {
-        examples.add(new Example(question.strip(), sql.strip(), notes));
-        if (path != null) save(path);
+        Example example = new Example(question.strip(), sql.strip(), notes);
+        if (path != null) {
+            List<Example> updated = new ArrayList<>(examples);
+            updated.add(example);
+            save(path, updated);
+        }
+        // Failed persistence must not expose an example to search or a later save.
+        examples.add(example);
     }
 
     /** Jaccard similarity on word tokens; override for embedding search. */
@@ -76,10 +82,10 @@ public class ExampleStore {
         }
     }
 
-    private void save(Path p) {
+    private void save(Path p, List<Example> updated) {
         try {
             List<Map<String, String>> raw = new ArrayList<>();
-            for (Example e : examples) raw.add(Map.of("question", e.question(), "sql", e.sql(), "notes", e.notes()));
+            for (Example e : updated) raw.add(Map.of("question", e.question(), "sql", e.sql(), "notes", e.notes()));
             Files.writeString(p, json.copy().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(raw));
         } catch (IOException e) {
             throw new Nl2SqlException("Cannot write examples file " + p + ": " + e.getMessage(), e);
